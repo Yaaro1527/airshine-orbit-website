@@ -1,0 +1,21 @@
+{
+  "name": "Airshine Orbit Solutions",
+  "short_name": "Airshine Orbit",
+  "description": "Data Management & IT Services for businesses",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#3B82F6",
+  "icons": [
+    {
+      "src": "/assets/images/logo.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "/assets/images/logo.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
