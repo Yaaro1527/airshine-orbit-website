@@ -1,0 +1,5 @@
+# Robots.txt for Airshine Orbit Solutions
+User-agent: *
+Allow: /
+
+Sitemap: https://www.airshineorbitsolutions.com/sitemap.xml
