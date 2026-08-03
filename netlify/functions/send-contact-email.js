@@ -57,6 +57,11 @@ function buildAdminHtml(payload) {
 
 export default async function handler(event) {
   const method = (event && (event.httpMethod || event.method || event.request?.method || event.headers?.['x-http-method-override'])) || '';
+  if (event.headers && (event.headers['x-debug'] === '1' || event.headers['X-Debug'] === '1')) {
+    const bodySample = typeof event.body === 'string' ? event.body.slice(0, 100) : null;
+    return new Response(JSON.stringify({ debug: true, methodCandidates: { httpMethod: event.httpMethod, method: event.method, requestMethod: event.request?.method, headerOverride: event.headers?.['x-http-method-override'] || event.headers?.['X-Http-Method-Override'] }, detected: method, headers: event.headers, bodySample }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
   if (String(method).toUpperCase() !== 'POST') {
     return new Response(JSON.stringify({ success: false, message: 'Method not allowed.' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
   }
