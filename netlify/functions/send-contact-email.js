@@ -56,10 +56,35 @@ function buildAdminHtml(payload) {
 }
 
 export default async function handler(event) {
-  const method = (event && (event.httpMethod || event.method || event.request?.method || event.headers?.['x-http-method-override'])) || '';
+  const method = (event && (event.httpMethod || event.method || event.request?.method || event.headers?.['x-http-method-override'] || event.headers?.['X-Http-Method-Override'])) || '';
+
+  const safeHeaderDump = (hdrs) => {
+    if (!hdrs) return {};
+    try {
+      return Object.keys(hdrs).reduce((acc, k) => {
+        const v = hdrs[k];
+        acc[k] = (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') ? v : String(v);
+        return acc;
+      }, {});
+    } catch (e) {
+      return { _error: String(e) };
+    }
+  };
+
   if (event.headers && (event.headers['x-debug'] === '1' || event.headers['X-Debug'] === '1')) {
-    const bodySample = typeof event.body === 'string' ? event.body.slice(0, 100) : null;
-    return new Response(JSON.stringify({ debug: true, methodCandidates: { httpMethod: event.httpMethod, method: event.method, requestMethod: event.request?.method, headerOverride: event.headers?.['x-http-method-override'] || event.headers?.['X-Http-Method-Override'] }, detected: method, headers: event.headers, bodySample }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+    const bodySample = (typeof event.body === 'string') ? event.body.slice(0, 100) : (event.body ? String(event.body).slice(0, 100) : null);
+    return new Response(JSON.stringify({
+      debug: true,
+      methodCandidates: {
+        httpMethod: event.httpMethod,
+        method: event.method,
+        requestMethod: event.request?.method,
+        headerOverride: event.headers?.['x-http-method-override'] || event.headers?.['X-Http-Method-Override']
+      },
+      detected: method,
+      headers: safeHeaderDump(event.headers),
+      bodySample
+    }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
   if (String(method).toUpperCase() !== 'POST') {
@@ -67,14 +92,31 @@ export default async function handler(event) {
   }
 
   try {
-    const body = JSON.parse(event.body || '{}');
+    let bodyObj = {};
+    if (typeof event.body === 'string') {
+      try {
+        bodyObj = JSON.parse(event.body || '{}');
+      } catch (e) {
+        bodyObj = {};
+      }
+    } else if (event.body && typeof event.body === 'object') {
+      bodyObj = event.body;
+    } else if (event.request && typeof event.request.json === 'function') {
+      try {
+        bodyObj = await event.request.json();
+      } catch (e) {
+        bodyObj = {};
+      }
+    } else {
+      bodyObj = {};
+    }
     const payload = {
-      name: sanitize(body.name),
-      email: sanitize(body.email),
-      phone: sanitize(body.phone),
-      subject: sanitize(body.subject),
-      message: sanitize(body.message),
-      recipient: sanitize(body.recipient)
+      name: sanitize(bodyObj.name),
+      email: sanitize(bodyObj.email),
+      phone: sanitize(bodyObj.phone),
+      subject: sanitize(bodyObj.subject),
+      message: sanitize(bodyObj.message),
+      recipient: sanitize(bodyObj.recipient)
     };
 
     const forwardedFor = event.headers?.['x-forwarded-for'] || event.headers?.['client-ip'] || '';
