@@ -76,8 +76,83 @@ export default async function handler(event) {
     }
   };
 
-  if (event.headers && (event.headers['x-debug'] === '1' || event.headers['X-Debug'] === '1')) {
-    const bodySample = (typeof event.body === 'string') ? event.body.slice(0, 100) : (event.body ? String(event.body).slice(0, 100) : null);
+  const buildBodySample = async () => {
+    if (typeof event.body === 'string') return event.body.slice(0, 100);
+    if (event.body && typeof event.body === 'object') {
+      if (typeof event.body.text === 'function') {
+        try {
+          return (await event.body.text()).slice(0, 100);
+        } catch (e) {
+          return String(event.body).slice(0, 100);
+        }
+      }
+      return String(event.body).slice(0, 100);
+    }
+    if (event.request && typeof event.request.text === 'function') {
+      try {
+        return (await event.request.text()).slice(0, 100);
+      } catch (e) {
+        return null;
+      }
+    }
+    return null;
+  };
+
+  const parseBody = async () => {
+    if (typeof event.body === 'string') {
+      try {
+        return JSON.parse(event.body || '{}');
+      } catch (e) {
+        return {};
+      }
+    }
+
+    if (event.body && typeof event.body === 'object') {
+      if (typeof event.body.json === 'function') {
+        try {
+          return await event.body.json();
+        } catch (e) {
+          return event.body;
+        }
+      }
+      if (typeof event.body.text === 'function') {
+        try {
+          const text = await event.body.text();
+          return JSON.parse(text || '{}');
+        } catch (e) {
+          return event.body;
+        }
+      }
+      return event.body;
+    }
+
+    if (event.request && typeof event.request.json === 'function') {
+      try {
+        return await event.request.json();
+      } catch (e) {
+        try {
+          const text = await event.request.text();
+          return JSON.parse(text || '{}');
+        } catch (err) {
+          return {};
+        }
+      }
+    }
+
+    if (typeof event.json === 'function') {
+      try {
+        return await event.json();
+      } catch (e) {
+        return {};
+      }
+    }
+
+    return {};
+  };
+
+  const debugRequested = Boolean(event.headers && (event.headers['x-debug'] === '1' || event.headers['X-Debug'] === '1'));
+  if (debugRequested) {
+    const bodySample = await buildBodySample();
     return new Response(JSON.stringify({
       debug: true,
       methodCandidates: {
@@ -88,7 +163,15 @@ export default async function handler(event) {
       },
       detected: method,
       headers: safeHeaderDump(event.headers),
-      bodySample
+      requestHeaders: safeHeaderDump(event.request?.headers),
+      bodySample,
+      eventShape: {
+        bodyType: typeof event.body,
+        hasRequest: Boolean(event.request),
+        hasJson: typeof event.json === 'function',
+        hasRequestJson: typeof event.request?.json === 'function',
+        hasRequestText: typeof event.request?.text === 'function'
+      }
     }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   }
 
@@ -97,24 +180,7 @@ export default async function handler(event) {
   }
 
   try {
-    let bodyObj = {};
-    if (typeof event.body === 'string') {
-      try {
-        bodyObj = JSON.parse(event.body || '{}');
-      } catch (e) {
-        bodyObj = {};
-      }
-    } else if (event.body && typeof event.body === 'object') {
-      bodyObj = event.body;
-    } else if (event.request && typeof event.request.json === 'function') {
-      try {
-        bodyObj = await event.request.json();
-      } catch (e) {
-        bodyObj = {};
-      }
-    } else {
-      bodyObj = {};
-    }
+    const bodyObj = await parseBody();
     const payload = {
       name: sanitize(bodyObj.name),
       email: sanitize(bodyObj.email),
