@@ -56,7 +56,8 @@ function buildAdminHtml(payload) {
 }
 
 export default async function handler(event) {
-  if (event.httpMethod !== 'POST') {
+  const method = (event && (event.httpMethod || event.method || event.request?.method || event.headers?.['x-http-method-override'])) || '';
+  if (String(method).toUpperCase() !== 'POST') {
     return new Response(JSON.stringify({ success: false, message: 'Method not allowed.' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
   }
 
