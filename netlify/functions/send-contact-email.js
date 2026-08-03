@@ -55,13 +55,9 @@ function buildAdminHtml(payload) {
   `;
 }
 
-export async function handler(event) {
+export default async function handler(event) {
   if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: false, message: 'Method not allowed.' })
-    };
+    return new Response(JSON.stringify({ success: false, message: 'Method not allowed.' }), { status: 405, headers: { 'Content-Type': 'application/json' } });
   }
 
   try {
@@ -88,38 +84,22 @@ export async function handler(event) {
     }
 
     if (entry.count >= maxRequests) {
-      return {
-        statusCode: 429,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: false, message: 'Too many submissions. Please try again later.' })
-      };
+      return new Response(JSON.stringify({ success: false, message: 'Too many submissions. Please try again later.' }), { status: 429, headers: { 'Content-Type': 'application/json' } });
     }
 
     entry.count += 1;
     rateLimitMap.set(clientIp, entry);
 
     if (!payload.name || !payload.email || !payload.phone || !payload.subject || !payload.message) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: false, message: 'Please complete all required fields.' })
-      };
+      return new Response(JSON.stringify({ success: false, message: 'Please complete all required fields.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(payload.email)) {
-      return {
-        statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: false, message: 'Valid email is required.' })
-      };
+      return new Response(JSON.stringify({ success: false, message: 'Valid email is required.' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
     }
 
     if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) {
-      return {
-        statusCode: 500,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ success: false, message: 'Email service is not configured.' })
-      };
+      return new Response(JSON.stringify({ success: false, message: 'Email service is not configured.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
     }
 
     const mailOptions = {
@@ -139,18 +119,8 @@ export async function handler(event) {
     await transporter.sendMail(mailOptions);
     await transporter.sendMail(confirmationOptions);
 
-    return {
-      statusCode: 200,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: true, message: 'Message delivered successfully.' })
-    };
+    return new Response(JSON.stringify({ success: true, message: 'Message delivered successfully.' }), { status: 200, headers: { 'Content-Type': 'application/json' } });
   } catch (error) {
-    return {
-      statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ success: false, message: error.message || 'Unable to send email.' })
-    };
+    return new Response(JSON.stringify({ success: false, message: error.message || 'Unable to send email.' }), { status: 500, headers: { 'Content-Type': 'application/json' } });
   }
 }
-
-export default handler;
