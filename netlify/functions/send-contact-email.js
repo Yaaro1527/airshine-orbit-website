@@ -4,10 +4,15 @@ const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM_NAME, SMTP_FROM_EM
 
 const rateLimitMap = new Map();
 
+const smtpPort = Number(SMTP_PORT || 587);
+const smtpSecure = typeof process.env.SMTP_SECURE !== 'undefined'
+  ? String(process.env.SMTP_SECURE).toLowerCase() === 'true'
+  : smtpPort === 465;
+
 const transporter = nodemailer.createTransport({
   host: SMTP_HOST,
-  port: Number(SMTP_PORT || 587),
-  secure: false,
+  port: smtpPort,
+  secure: smtpSecure,
   auth: {
     user: SMTP_USER,
     pass: SMTP_PASS
