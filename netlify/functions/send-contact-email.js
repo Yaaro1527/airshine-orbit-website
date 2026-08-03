@@ -63,9 +63,27 @@ function buildAdminHtml(payload) {
 export default async function handler(event) {
   const method = (event && (event.httpMethod || event.method || event.request?.method || event.headers?.['x-http-method-override'] || event.headers?.['X-Http-Method-Override'])) || '';
 
+  const getHeaderValue = (hdrs, key) => {
+    if (!hdrs || !key) return undefined;
+    if (typeof hdrs.get === 'function') {
+      return hdrs.get(key) || hdrs.get(key.toLowerCase());
+    }
+    if (typeof hdrs === 'object') {
+      return hdrs[key] || hdrs[key.toLowerCase()];
+    }
+    return undefined;
+  };
+
   const safeHeaderDump = (hdrs) => {
     if (!hdrs) return {};
     try {
+      if (typeof hdrs.entries === 'function') {
+        const result = {};
+        for (const [key, value] of hdrs.entries()) {
+          result[key] = value;
+        }
+        return result;
+      }
       return Object.keys(hdrs).reduce((acc, k) => {
         const v = hdrs[k];
         acc[k] = (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') ? v : String(v);
@@ -86,6 +104,14 @@ export default async function handler(event) {
           return String(event.body).slice(0, 100);
         }
       }
+      if (typeof event.body.arrayBuffer === 'function') {
+        try {
+          const buffer = await event.body.arrayBuffer();
+          return new TextDecoder('utf-8').decode(buffer).slice(0, 100);
+        } catch (e) {
+          return String(event.body).slice(0, 100);
+        }
+      }
       return String(event.body).slice(0, 100);
     }
     if (event.request && typeof event.request.text === 'function') {
@@ -98,6 +124,24 @@ export default async function handler(event) {
     return null;
   };
 
+  const parseTextBody = async (body) => {
+    try {
+      const text = await body.text();
+      return JSON.parse(text || '{}');
+    } catch (e) {
+      try {
+        if (typeof body.arrayBuffer === 'function') {
+          const buffer = await body.arrayBuffer();
+          const decoded = new TextDecoder('utf-8').decode(buffer);
+          return JSON.parse(decoded || '{}');
+        }
+      } catch (secondError) {
+        return {};
+      }
+      return {};
+    }
+  };
+
   const parseBody = async () => {
     if (typeof event.body === 'string') {
       try {
@@ -108,19 +152,35 @@ export default async function handler(event) {
     }
 
     if (event.body && typeof event.body === 'object') {
-      if (typeof event.body.json === 'function') {
-        try {
-          return await event.body.json();
-        } catch (e) {
-          return event.body;
+        // If the runtime exposes event.json() (common with Netlify's adapters)
+        // prefer that for ReadableStream bodies so we correctly parse the JSON.
+        if (typeof event.json === 'function') {
+          try {
+            return await event.json();
+          } catch (e) {
+            // fallthrough to try other parsing strategies
+          }
         }
-      }
+
+        if (typeof event.body.json === 'function') {
+          try {
+            return await event.body.json();
+          } catch (e) {
+            return await parseTextBody(event.body);
+          }
+        }
       if (typeof event.body.text === 'function') {
+        return await parseTextBody(event.body);
+      }
+      if (typeof event.body.arrayBuffer === 'function') {
+        return await parseTextBody(event.body);
+      }
+      if (ArrayBuffer.isView(event.body) || event.body instanceof ArrayBuffer) {
         try {
-          const text = await event.body.text();
-          return JSON.parse(text || '{}');
+          const decoded = new TextDecoder('utf-8').decode(event.body);
+          return JSON.parse(decoded || '{}');
         } catch (e) {
-          return event.body;
+          return {};
         }
       }
       return event.body;
@@ -131,8 +191,7 @@ export default async function handler(event) {
         return await event.request.json();
       } catch (e) {
         try {
-          const text = await event.request.text();
-          return JSON.parse(text || '{}');
+          return JSON.parse(await event.request.text() || '{}');
         } catch (err) {
           return {};
         }
@@ -150,21 +209,31 @@ export default async function handler(event) {
     return {};
   };
 
-  const debugRequested = Boolean(event.headers && (event.headers['x-debug'] === '1' || event.headers['X-Debug'] === '1'));
+  const debugRequested = Boolean(
+    (event.headers && (getHeaderValue(event.headers, 'x-debug') === '1' || getHeaderValue(event.headers, 'X-Debug') === '1')) ||
+    event.queryStringParameters?.debug === '1' ||
+    event.query?.debug === '1' ||
+    (typeof event.url === 'string' && event.url.includes('debug=1'))
+  );
+
   if (debugRequested) {
     const bodySample = await buildBodySample();
+    const bodyConstructor = event.body && event.body.constructor ? event.body.constructor.name : null;
+    const bodyIsReadable = event.body && (typeof event.body.text === 'function' || typeof event.body.arrayBuffer === 'function');
     return new Response(JSON.stringify({
       debug: true,
       methodCandidates: {
         httpMethod: event.httpMethod,
         method: event.method,
         requestMethod: event.request?.method,
-        headerOverride: event.headers?.['x-http-method-override'] || event.headers?.['X-Http-Method-Override']
+        headerOverride: getHeaderValue(event.headers, 'x-http-method-override') || getHeaderValue(event.headers, 'X-Http-Method-Override')
       },
       detected: method,
       headers: safeHeaderDump(event.headers),
       requestHeaders: safeHeaderDump(event.request?.headers),
       bodySample,
+      bodyConstructor,
+      bodyIsReadable,
       eventShape: {
         bodyType: typeof event.body,
         hasRequest: Boolean(event.request),
