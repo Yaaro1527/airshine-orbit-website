@@ -33,29 +33,91 @@ function escapeHtml(value) {
 }
 
 function buildCustomerHtml(name, email) {
+  const logoUrl = (SITE_URL ? SITE_URL.replace(/\/$/, '') : '') + '/assets/images/logo.jpeg';
   return `
-    <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-      <h2 style="color: #2563eb;">Thank You for Contacting Airshine Orbit Solutions</h2>
-      <p>Dear ${escapeHtml(name || 'Valued Customer')},</p>
-      <p>Thank you for contacting Airshine Orbit Solutions.</p>
-      <p>We have successfully received your enquiry and our team will review your message and get back to you as soon as possible.</p>
-      <p>Regards,<br/>Airshine Orbit Solutions<br/>Email: ${escapeHtml(email || 'airshineorbitsolutions@gmail.com')}</p>
+    <div style="background: #ffffff; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.6; margin:0; padding:0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:20px 16px 0 16px;">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;border-collapse:collapse;">
+              <tr>
+                <td style="padding:8px 0;"> 
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                    <tr>
+                      <td valign="middle" style="padding:8px 0;">
+                        <img src="${escapeHtml(logoUrl)}" alt="Airshine Orbit Solutions" width="48" height="48" style="display:block; border:0; outline:none; text-decoration:none; height:auto; width:48px;" />
+                      </td>
+                      <td valign="middle" style="padding-left:12px;">
+                        <span style="display:block; font-size:18px; line-height:20px; color:#0f172a; font-weight:600;">Airshine Orbit Solutions</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-top:12px;border-bottom:1px solid #e6e9ef;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <div style="padding:20px 16px;">
+        <div style="max-width:600px;margin:0 auto;">
+          <h2 style="color: #2563eb; margin:0 0 12px 0; font-size:20px; line-height:1.2;">Thank You for Contacting Airshine Orbit Solutions</h2>
+          <p style="margin:0 0 12px 0;">Dear ${escapeHtml(name || 'Valued Customer')},</p>
+          <p style="margin:0 0 12px 0;">Thank you for contacting Airshine Orbit Solutions.</p>
+          <p style="margin:0 0 12px 0;">We have successfully received your enquiry and our team will review your message and get back to you as soon as possible.</p>
+          <p style="margin:0 0 0 0;">Regards,<br/>Airshine Orbit Solutions<br/>Email: ${escapeHtml(email || 'airshineorbitsolutions@gmail.com')}</p>
+        </div>
+      </div>
     </div>
   `;
 }
 
 function buildAdminHtml(payload) {
   const now = new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+  const logoUrl = (SITE_URL ? SITE_URL.replace(/\/$/, '') : '') + '/assets/images/logo.jpeg';
   return `
-    <div style="font-family: Arial, sans-serif; color: #0f172a; line-height: 1.6;">
-      <h2 style="color: #2563eb;">New Contact Form Submission</h2>
-      <p><strong>Name:</strong> ${escapeHtml(payload.name || '')}</p>
-      <p><strong>Email:</strong> ${escapeHtml(payload.email || '')}</p>
-      <p><strong>Phone:</strong> ${escapeHtml(payload.phone || '')}</p>
-      <p><strong>Subject:</strong> ${escapeHtml(payload.subject || '')}</p>
-      <p><strong>Message:</strong><br/>${escapeHtml(payload.message || '')}</p>
-      <p><strong>Date & Time:</strong> ${escapeHtml(now)}</p>
-      <p><strong>Source:</strong> ${escapeHtml(SITE_URL || 'Website')}</p>
+    <div style="background: #ffffff; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #0f172a; line-height: 1.6; margin:0; padding:0;">
+      <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+        <tr>
+          <td align="center" style="padding:20px 16px 0 16px;">
+            <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="width:100%;max-width:600px;border-collapse:collapse;">
+              <tr>
+                <td style="padding:8px 0;"> 
+                  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
+                    <tr>
+                      <td valign="middle" style="padding:8px 0;">
+                        <img src="${escapeHtml(logoUrl)}" alt="Airshine Orbit Solutions" width="48" height="48" style="display:block; border:0; outline:none; text-decoration:none; height:auto; width:48px;" />
+                      </td>
+                      <td valign="middle" style="padding-left:12px;">
+                        <span style="display:block; font-size:18px; line-height:20px; color:#0f172a; font-weight:600;">Airshine Orbit Solutions</span>
+                      </td>
+                    </tr>
+                  </table>
+                </td>
+              </tr>
+              <tr>
+                <td style="padding-top:12px;border-bottom:1px solid #e6e9ef;">&nbsp;</td>
+              </tr>
+            </table>
+          </td>
+        </tr>
+      </table>
+
+      <div style="padding:20px 16px;">
+        <div style="max-width:600px;margin:0 auto;">
+          <h2 style="color: #2563eb; margin:0 0 12px 0; font-size:20px; line-height:1.2;">New Contact Form Submission</h2>
+          <p style="margin:0 0 8px 0;"><strong>Name:</strong> ${escapeHtml(payload.name || '')}</p>
+          <p style="margin:0 0 8px 0;"><strong>Email:</strong> ${escapeHtml(payload.email || '')}</p>
+          <p style="margin:0 0 8px 0;"><strong>Phone:</strong> ${escapeHtml(payload.phone || '')}</p>
+          <p style="margin:0 0 8px 0;"><strong>Subject:</strong> ${escapeHtml(payload.subject || '')}</p>
+          <p style="margin:0 0 12px 0;"><strong>Message:</strong><br/>${escapeHtml(payload.message || '')}</p>
+          <p style="margin:0 0 6px 0;"><strong>Date & Time:</strong> ${escapeHtml(now)}</p>
+          <p style="margin:0 0 0 0;"><strong>Source:</strong> ${escapeHtml(SITE_URL || 'Website')}</p>
+        </div>
+      </div>
     </div>
   `;
 }
